@@ -1,0 +1,625 @@
+document.addEventListener('DOMContentLoaded', function () {
+    var url = document.location;
+
+    var isSimpleMode = true;
+    var isModuleUrlView = true;
+
+    var filter = "win16|win32|win64|mac|macintel";
+    var isMobile = false;
+
+    if (navigator.platform) {
+        if (filter.indexOf(navigator.platform.toLowerCase()) < 0) {
+        isMobile = true;
+        }
+    }
+
+    function amIMobile() {
+        const userAgent = navigator.userAgent.toLowerCase();
+        const mobileKeywords = ["android", "webos", "iphone", "ipad", "ipod", "blackberry", "windows phone"];
+        for (let keyword of mobileKeywords) {
+        if (userAgent.includes(keyword)) return true;
+        }
+        return false;
+    }
+
+	// *****************************************************************************************************************
+	// 공통처리
+    // *****************************************************************************************************************
+
+    // '새 강좌 추가' 버튼 숨김
+    if (document.getElementById('page-site-index')) {
+        document.querySelector('.buttons .singlebutton form[action*="/course/edit.php"]')
+        ?.closest('.singlebutton')?.style.setProperty('display', 'none');               
+    }
+    
+    switch (url.pathname) {
+
+        // =====================================================================
+        // 모듈별 설정
+        // =====================================================================
+        case '/course/modedit.php': {
+
+            // 공통 유틸
+            const isAddMode = (mod) =>
+            url.search.indexOf(`?add=${mod}`) > -1 || url.search.indexOf(`&add=${mod}`) > -1;
+
+            const injectHideCss = (cssSelectors) => {
+                const style = document.createElement('style');
+                style.innerHTML = `${cssSelectors} { display: none; }`;
+                document.head.appendChild(style);
+            };
+
+            const hideCompletionManualOption = () => {
+                const container = document.getElementById('id_activitycompletionheadercontainer');
+                if (!container) return;
+
+                const targets = [
+                    '학습자가 직접 완료 표시',
+                    'Students must manually mark the activity as done'
+                ];
+
+                container.querySelectorAll('label').forEach(label => {
+                    const text = (label.textContent || '').replace(/\s+/g, ' ').trim();
+                    if (targets.some(t => text.includes(t))) {
+                    label.closest('.fitem')?.style.setProperty('display', 'none');
+                    }
+                });
+            };
+
+            // =========================================================
+            // URL(url)
+            // =========================================================
+            if (document.getElementById('page-mod-url-mod')) {
+
+                // 공통: 활동 완료 조건에서 '학습자가 직접 완료 표시' 숨김
+                hideCompletionManualOption();
+
+                // 공통: 숨김 처리
+                injectHideCss(`
+                    #id_optionssection,
+                    #fitem_id_cmidnumber,
+                    #fitem_id_lang,
+                    #fitem_id_completionexpected
+                `);
+
+                // 추가(add) 시에만: '새창으로' 기본값
+                if (isAddMode('url')) {
+                    const displaySelect = document.getElementById('id_display');
+                    if (displaySelect) {
+                        displaySelect.value = '5'; // 열기
+                        displaySelect.dispatchEvent(new Event('change', { bubbles: true }));
+                    }
+
+                    const showDescCheckbox = document.getElementById('id_showdescription');
+                    if (showDescCheckbox) {
+                        showDescCheckbox.checked = true;
+                        showDescCheckbox.dispatchEvent(new Event('change', { bubbles: true }));
+                    }
+                }
+                          
+            }
+
+            // =========================================================
+            // 파일(ubfile)
+            // =========================================================
+            if (document.getElementById('page-mod-ubfile-mod')) {
+
+                // 공통: 활동 완료 조건에서 '학습자가 직접 완료 표시' 숨김
+                hideCompletionManualOption();
+
+                // 공통: 숨김 처리
+                injectHideCss(`
+                    #fitem_id_cmidnumber,
+                    #fitem_id_lang,
+                    #fitem_id_completionexpected
+                `);
+            }
+
+            // =========================================================
+            // 동영상(vod)
+            // =========================================================
+            if (document.getElementById('page-mod-vod-mod')) {
+
+                // 공통: 활동 완료 조건에서 '학습자가 직접 완료 표시' 숨김
+                hideCompletionManualOption();
+
+                // 공통: 숨김 처리
+                injectHideCss(`
+                    #fitem_id_display,
+                    #fitem_id_popupwidth,
+                    #fitem_id_popupheight,
+                    #fitem_id_showplaytime,
+                    #fitem_id_cmidnumber,
+                    #fitem_id_lang,
+                    #id_activitycompletionheader .fitem:has(input[name="completionpassgrade"]),
+                    #fitem_id_completionexpected
+                `);
+            }
+
+            // =========================================================
+            // 이러닝콘텐츠(econtents)
+            // =========================================================
+            if (document.getElementById('page-mod-econtents-mod')) {
+
+                // 공통: 활동 완료 조건에서 '학습자가 직접 완료 표시' 숨김
+                hideCompletionManualOption();
+
+                // 공통: 숨김 처리
+                injectHideCss(`
+                    #fitem_id_popupwidth,
+                    #fitem_id_popupheight,
+                    #fitem_id_showplaytime,
+                    #fitem_id_cmidnumber,
+                    #fitem_id_lang,
+                    #id_activitycompletionheader .fitem:has(input[name="completionpassgrade"]),
+                    #fitem_id_completionexpected
+                `);           
+            }
+
+            // =========================================================
+            // 게시판(ubboard)
+            // =========================================================
+            if (document.getElementById('page-mod-ubboard-mod')) {
+
+                // 공통: 활동 완료 조건에서 '학습자가 직접 완료 표시' 숨김
+                hideCompletionManualOption();
+
+                // 공통: 숨김 처리
+                injectHideCss(`
+                    #fitem_id_cmidnumber,
+                    #fitem_id_lang,
+                    #fitem_id_completionexpected
+                `);           
+            }  
+
+            // =========================================================
+            // 설문조사(feedback)
+            // =========================================================
+            if (document.getElementById('page-mod-feedback-mod')) {
+
+                // 공통: 활동 완료 조건에서 '학습자가 직접 완료 표시' 숨김
+                hideCompletionManualOption();
+
+                // 펼침 처리
+                document.getElementById('id_timinghdr')?.classList.remove('collapsed');
+                document.getElementById('id_timinghdrcontainer')?.classList.add('show');
+
+                document.getElementById('id_feedbackhdr')?.classList.remove('collapsed');
+                document.getElementById('id_feedbackhdrcontainer')?.classList.add('show');
+                
+                // 공통: 숨김 처리
+                injectHideCss(`
+                    #fitem_id_email_notification,
+                    #fitem_id_site_after_submit,
+                    #fitem_id_cmidnumber,
+                    #fitem_id_lang,
+                    #fitem_id_completionexpected
+                `);           
+            }
+
+            // =========================================================
+            // Zoom(zoom)
+            // =========================================================
+            if (document.getElementById('page-mod-zoom-mod')) {
+
+                // 공통: 활동 완료 조건에서 '학습자가 직접 완료 표시' 숨김
+                hideCompletionManualOption();
+                
+                // 공통: 숨김 처리
+                injectHideCss(`
+                    #fitem_id_recurring,
+                    #fitem_id_recurring_waring,
+                    #fitem_id_show_security,
+                    #fitem_id_show_media,
+                    #id_host,
+                    #fitem_id_cmidnumber,
+                    #fitem_id_lang,
+                    #fitem_id_completionexpected
+                `);           
+            }
+
+            // =========================================================
+            // 과제(assign)
+            // =========================================================
+            if (document.getElementById('page-mod-assign-mod')) {
+
+                // 공통: 활동 완료 조건에서 '학습자가 직접 완료 표시' 숨김
+                hideCompletionManualOption();
+          
+                // 채점 가이드 옵션 숨김
+                document.querySelector('#id_modstandardgrade option[value="guide"]')?.remove();
+                
+                // '설명 항상 표시' 옵션 숨김
+                document.getElementById('id_alwaysshowdescription')?.closest('.fitem')?.style.setProperty('display', 'none');
+
+                // 공통: 숨김 처리
+                injectHideCss(`
+                    ${url.hostname !== 'uclass.uos.ac.kr' ? '#id_feedbacktypes,' : ''}
+                    #id_notifications,
+                    #fitem_id_requireallteammemberssubmit,
+                    #fitem_id_cmidnumber,
+                    #fitem_id_lang,
+                    #fitem_id_restrictgroupbutton,
+                    #fitem_id_completionexpected
+                `);           
+            }   
+
+            // =========================================================
+            // 시험(quiz)
+            // =========================================================
+            if (document.getElementById('page-mod-quiz-mod')) {
+
+                // 공통: 활동 완료 조건에서 '학습자가 직접 완료 표시' 숨김
+                hideCompletionManualOption();
+
+                // 펼침 처리
+                document.getElementById('id_timing')?.classList.remove('collapsed');
+                document.getElementById('id_timingcontainer')?.classList.add('show');
+
+                // 공통: 숨김 처리
+                injectHideCss(`
+                    #fitem_id_overduehandling,
+                    #id_layouthdr,
+                    #id_interactionhdr,
+                    #id_display,
+                    #id_seb,
+                    #id_security,
+                    #fitem_id_cmidnumber,
+                    #fitem_id_lang,
+                    #fitem_id_completionexpected
+                `);           
+            } 
+
+            // =========================================================
+            // 토론(forum)
+            // =========================================================
+            if (document.getElementById('page-mod-forum-mod')) {
+
+                // 공통: 활동 완료 조건에서 '학습자가 직접 완료 표시' 숨김
+                hideCompletionManualOption();
+                
+                // 채점 가이드 옵션 숨김
+                document.querySelector('#id_advancedgradingmethod_forum option[value="guide"]')?.remove();
+                
+                // 공통: 숨김 처리
+                injectHideCss(`
+                    #fitem_id_duedate,
+                    #fitem_id_displaywordcount,
+                    #id_subscriptionandtrackinghdr,
+                    #id_discussionlocking,
+                    #fitem_id_grade_forum_notify,
+                    #fitem_id_rolewarning,
+                    #id_blockafterheader,
+                    #fitem_id_cmidnumber,
+                    #fitem_id_lang,
+                    #fitem_id_completionexpected
+                `);           
+            }               
+
+            // =========================================================
+            // 폴더(folder)
+            // =========================================================
+            if (document.getElementById('page-mod-folder-mod')) {
+
+                // 공통: 활동 완료 조건에서 '학습자가 직접 완료 표시' 숨김
+                hideCompletionManualOption();
+
+                // 공통: 숨김 처리
+                injectHideCss(`
+                    #fitem_id_showexpanded,
+                    #fitem_id_showdownloadfolder,
+                    #fitem_id_forcedownload,
+                    #fitem_id_cmidnumber,
+                    #fitem_id_lang,
+                    #fitem_id_completionexpected
+                `);           
+            }   
+            
+            // =========================================================
+            // 간편설문/투표(choice)
+            // =========================================================
+            if (document.getElementById('page-mod-choice-mod')) {
+
+                // 공통: 활동 완료 조건에서 '학습자가 직접 완료 표시' 숨김
+                hideCompletionManualOption();
+
+                // 공통: 숨김 처리
+                injectHideCss(`
+                    #fitem_id_cmidnumber,
+                    #fitem_id_lang,
+                    #fitem_id_completionexpected
+                `);           
+            }   
+            
+            // =========================================================
+            // 채팅방(minitalk)
+            // =========================================================
+            if (document.getElementById('page-mod-minitalk-mod')) {
+
+                // 공통: 활동 완료 조건에서 '학습자가 직접 완료 표시' 숨김
+                hideCompletionManualOption();
+
+                // 공통: 숨김 처리
+                injectHideCss(`
+                    #fitem_id_cmidnumber,
+                    #fitem_id_lang,
+                    #fitem_id_completionexpected
+                `);           
+            }               
+        break;
+        }
+
+        // =====================================================================
+        // 문제은행 - 문항 설정
+        // =====================================================================
+        case '/question/bank/editquestion/question.php': {
+
+            // 공통 유틸
+            const injectHideCss = (cssSelectors) => {
+                const style = document.createElement('style');
+                style.innerHTML = `${cssSelectors} { display: none; }`;
+                document.head.appendChild(style);
+            };
+
+            // =========================================================
+            // 선다형(multichoice)
+            // =========================================================            
+            if (document.getElementById('page-question-type-multichoice')) {
+                
+                // 공통: 숨김 처리
+                injectHideCss(`
+                    #id_combinedfeedbackhdr,
+                    #id_multitriesheader,
+                    #fitem_id_idnumber,
+                    #fitem_id_showstandardinstruction
+                `);           
+            } 
+
+            // =========================================================
+            // 참거짓형(truefalse)
+            // =========================================================            
+            if (document.getElementById('page-question-type-truefalse')) {
+                
+                // 공통: 숨김 처리
+                injectHideCss(`
+                    #id_multitriesheader,
+                    #fitem_id_idnumber,
+                    #fitem_id_showstandardinstruction
+                `);           
+            }
+
+            // =========================================================
+            // 짝찾기형(match)
+            // =========================================================            
+            if (document.getElementById('page-question-type-match')) {
+                
+                // 공통: 숨김 처리
+                injectHideCss(`
+                    #id_combinedfeedbackhdr,
+                    #id_multitriesheader,
+                    #fitem_id_idnumber
+                `);           
+            }     
+
+            // =========================================================
+            // 단답형(shortanswer)
+            // =========================================================            
+            if (document.getElementById('page-question-type-shortanswer')) {
+                
+                // 공통: 숨김 처리
+                injectHideCss(`
+                    #id_multitriesheader,
+                    #fitem_id_idnumber
+                `);           
+            }   
+
+            // =========================================================
+            // 수치형(numerical)
+            // =========================================================            
+            if (document.getElementById('page-question-type-numerical')) {
+                
+                // 공통: 숨김 처리
+                injectHideCss(`
+                    #id_unithandling,
+                    #id_unithdr,
+                    #id_multitriesheader,
+                    #fitem_id_idnumber
+                `);           
+            }    
+            
+            // =========================================================
+            // 서술형(essay)
+            // =========================================================            
+            if (document.getElementById('page-question-type-essay')) {
+                
+                // 공통: 숨김 처리
+                injectHideCss(`
+                    #fitem_id_responserequired,
+                    #id_graderinfoheader,
+                    #fitem_id_idnumber
+                `);           
+            } 
+            
+            // =========================================================
+            // 빈칸채우기(multianswer)
+            // =========================================================            
+            if (document.getElementById('page-question-type-multianswer')) {
+                
+                // 공통: 숨김 처리
+                injectHideCss(`
+                    #id_multitriesheader,
+                    #fitem_id_idnumber
+                `);           
+            }     
+
+            // =========================================================
+            // 설명(description)
+            // =========================================================            
+            if (document.getElementById('page-question-type-description')) {
+                
+                // 공통: 숨김 처리
+                injectHideCss(`
+                    #fitem_id_generalfeedback,
+                    #fitem_id_idnumber
+                `);           
+            }             
+
+        break;
+        }
+
+        // =====================================================================
+        // 문제은행 미리보기
+        // =====================================================================
+        case '/question/bank/previewquestion/preview.php': {
+
+            // 공통 유틸
+            const injectHideCss = (cssSelectors) => {
+                const style = document.createElement('style');
+                style.innerHTML = `${cssSelectors} { display: none; }`;
+                document.head.appendChild(style);
+            }; 
+            
+            // 공통: 숨김 처리
+            document.querySelector('.collapsible-actions')?.style.setProperty('display', 'none');
+            document.querySelector('#previewcontrols input[name="fill"]')?.style.setProperty('display', 'none');
+            injectHideCss(`
+                #id_restart_question_preview,
+                #id_save_question_preview,
+                #id_finish_question_preview,
+                #id_attemptoptionsheader,
+                #id_displayoptionsheader
+            `);  
+
+        break;        
+        }     
+
+        // =====================================================================
+        // 문제은행 - 문항
+        // =====================================================================
+        case '/question/edit.php': {
+        
+            // '열 추가' 숨김
+            document.getElementById('addcolumndropdown')?.style.setProperty('display', 'none');
+        
+        break;        
+        }         
+
+        // =====================================================================
+        // 강의실 관리 > 이수 기준
+        // =====================================================================
+        case '/course/completion.php': {
+
+            // 공통 유틸
+            const injectHideCss = (cssSelectors) => {
+                const style = document.createElement('style');
+                style.innerHTML = `${cssSelectors} { display: none; }`;
+                document.head.appendChild(style);
+            }; 
+            
+            // 공통: 숨김 처리
+            injectHideCss(`
+                #id_courseprerequisites,
+                #id_duration,
+                #id_unenrolment,
+                #id_manualselfcompletion,
+                #id_roles
+            `);  
+
+        break;
+        }     
+
+        // =====================================================================
+        // 설문조사 - 문항등록
+        // =====================================================================
+        case '/mod/feedback/edit.php': {
+
+            document.querySelectorAll(
+                '#addQuestionModal input[data-url*="typ=info"], #addQuestionModal input[data-url*="typ=captcha"]'
+            ).forEach(input => {
+                input.closest('.fmodal-item-list')?.style.setProperty('display', 'none');
+            });           
+
+        break;
+        }    
+        
+        // =====================================================================
+        // 강의실 관리 > 팀 설정
+        // =====================================================================
+    
+        // 팀 수동 등록
+        case '/group/group.php': {
+            
+            // 공통 유틸
+            const injectHideCss = (cssSelectors) => {
+                const style = document.createElement('style');
+                style.innerHTML = `${cssSelectors} { display: none; }`;
+                document.head.appendChild(style);
+            }; 
+            
+            if (document.getElementById('page-group-group')) {
+                // 공통: 숨김 처리
+                injectHideCss(`
+                    #fitem_id_enrolmentkey,
+                    #fitem_id_visibility,
+                    #fitem_id_participation,
+                    #fitem_id_enablemessaging,
+                    #fitem_id_currentpicture,
+                    #fitem_id_imagefile
+                `);     
+            }
+
+        break;
+        }          
+
+        // 팀 자동 등록
+        case '/group/autogroup.php': {
+
+            // '팀 메시지 활성화' 숨김
+            document.getElementById('fitem_id_enablemessaging')?.style.setProperty('display', 'none');
+
+        break;
+        }
+
+        // =====================================================================
+        // 토론 - 주제 등록
+        // =====================================================================    
+
+        // 토론 주제(고급)  
+        case '/mod/forum/post.php': {
+            
+            // 주제 구독하기 기능 숨김
+            document.querySelector('#id_generalcontainer .fitem-checkbox')?.style.setProperty('display', 'none');
+
+        break;
+        }     
+              
+    }
+    // *****************************************************************************
+	// 서울시립대학교(운영)
+	// *****************************************************************************
+	
+	// Made by #lhr
+	if(url.hostname == 'uclass.uos.ac.kr' ){
+        // 특정 id 하단 페이지 이동 버튼 제거 요청
+        var url = new URL(window.location.href);
+        switch (url.pathname) {        
+            case '/mod/page/view.php': {        
+                var id = url.searchParams.get('id');        
+                if (id === '21955' || id === '21956') {
+                    document.querySelector('.secondary-navigation')?.remove();
+                    document.querySelector('.modified')?.remove();
+                    document.querySelector('.activity-navigation')?.remove();
+                }        
+                break;
+            }
+        }
+	}
+
+
+});
+
+// $.GET 대체: URL 파라미터 가져오기
+function getParam(name) {
+  var params = new URLSearchParams(window.location.search);
+  return params.get(name);
+}
