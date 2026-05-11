@@ -1,5 +1,9 @@
 """Generate DOCX summaries from data already in lms.db.
 
+Deprecated: use `python -m app.cli regen-docx [--course N]` instead.
+This wrapper is kept for back-compat with older docs/habits and will be
+removed once Phase 2 ships.
+
 Run from `backend/`:
     python scripts/smoke_docs.py                # all courses
     python scripts/smoke_docs.py --course 1     # one course by DB id
@@ -26,9 +30,11 @@ from app.docs.docx_writer import (  # noqa: E402
 )
 
 logging.basicConfig(level=os.environ.get("LOG_LEVEL", "INFO").upper())
+log = logging.getLogger(__name__)
 
 
 def main() -> None:
+    log.warning("smoke_docs.py is deprecated; use 'python -m app.cli regen-docx'")
     init_db()
 
     ap = argparse.ArgumentParser()

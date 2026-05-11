@@ -11,6 +11,7 @@ from urllib.parse import parse_qs, urlparse
 from playwright.async_api import Page
 
 from ..db import repository as repo
+from ..downloader import paths as dl_paths
 from ..downloader.download import download_via_click
 from ..selectors import BOARD
 
@@ -72,6 +73,8 @@ async def collect_board(
     course_id: int,
     course_name: str,
     cmid: int,
+    week: Optional[int] = None,
+    source_label: Optional[str] = None,
 ) -> int:
     """Visit the board's article list, then each article. Returns total new
     material count (article attachments)."""
@@ -116,12 +119,18 @@ async def collect_board(
             posted_at=_parse_posted_at(posted_raw),
             body_html=body,
             url=page.url,
+            source_label=source_label,
         )
         db.commit()
 
         attachments = await page.locator(BOARD.ARTICLE_ATTACH).all()
         for att in attachments:
             att_href = await att.get_attribute("href") or ""
+
+            fname = dl_paths.filename_from_url(att_href)
+            if fname and repo.material_exists_by_filename(db, course_id, fname):
+                log.info("ubboard cmid=%s bwid=%s: skip (filename dedupe) %s", cmid, bwid, fname)
+                continue
 
             def _exists(sha: str) -> bool:
                 return repo.material_exists_by_sha(db, course_id, sha)
@@ -130,7 +139,7 @@ async def collect_board(
                 page,
                 att,
                 course_name=course_name,
-                week=None,
+                source_label=source_label,
                 sha_exists=_exists,
             )
             if result is None:
@@ -141,7 +150,8 @@ async def collect_board(
                 course_id=course_id,
                 source_type="ubboard_attach",
                 cmid=cmid,
-                week=None,
+                week=week,
+                source_label=source_label,
                 post_id=bwid,
                 title=result.suggested_filename,
                 file_path=str(result.path),

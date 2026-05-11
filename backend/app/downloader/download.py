@@ -39,12 +39,12 @@ async def download_via_click(
     locator: Locator,
     *,
     course_name: str,
-    week: Optional[int],
+    source_label: Optional[str],
     sha_exists: callable,  # (sha256) -> bool
     timeout_ms: int = 60_000,
 ) -> Optional[DownloadedFile]:
     """Click `locator` to trigger a download, stage into data/temp, then move
-    into Desktop/UOS_LMS_AI/<course>/<N>주차/원본/ if not a duplicate.
+    into Desktop/UOS_LMS_AI/<course>/<source_label>/원본/ if not a duplicate.
     Returns None on duplicate or failure."""
     paths.ensure_dirs()
 
@@ -80,7 +80,7 @@ async def download_via_click(
             tmp.unlink(missing_ok=True)
             return None
 
-        final = paths.original_path(course_name, week, suggested)
+        final = paths.original_path(course_name, source_label, suggested)
         final.parent.mkdir(parents=True, exist_ok=True)
         if final.exists():
             final.unlink()

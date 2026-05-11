@@ -16,6 +16,8 @@ asyncio.Lock() 획득
         │     ├── course_page.collect_course_materials  ← 활동 순회
         │     ├── docs.generate_course_summaries        ← DOCX 재생성
         │     └── repo.mark_course_synced + commit
+        ├── timetable.refresh_timetable(allow_manual_login=False)
+        │     └── master/courses_*.json mtime 변동 없으면 skip-marker로 즉시 return
         └── session.save_state()  ← state.json 갱신
 ```
 

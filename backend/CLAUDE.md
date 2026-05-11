@@ -23,9 +23,13 @@ python -m app.main
 | `app/auth/` | 로그인 | OS keyring, `playwright-state/state.json` |
 | `app/collector/` | LMS DOM 스크레이핑 | Playwright |
 | `app/downloader/` | 파일 다운로드 + dedupe | Playwright `expect_download` |
-| `app/db/` | SQLAlchemy 모델/리포지토리 | SQLite `data/lms.db` |
+| `app/parser/` | PDF/PPTX/DOCX 텍스트 추출 | PyMuPDF, PaddleOCR(lazy), python-pptx, python-docx |
+| `app/db/` | SQLAlchemy 모델/리포지토리 | SQLite `data/user/lms.db` |
 | `app/docs/` | DOCX 정리노트 생성 | python-docx |
+| `app/timetable/` | master JSON → DB enrich (시간표/교수/주차 토픽) | `data/master/courses_*.json` |
 | `app/scheduler/` | 주기적 full_sync | APScheduler |
+| `app/cli.py` | Tauri 가 spawn 하는 CLI 진입점 | stdout JSON Lines |
+| `app/events.py` | stdout 이벤트 emit | (Tauri 브릿지) |
 | `scripts/` | 스모크 테스트 + 초기화 | CLI |
 
 각 서브디렉토리에는 별도 `CLAUDE.md`가 있을 수 있음 — 해당 모듈을 수정할 때만 자동 로드된다.
@@ -35,8 +39,9 @@ python -m app.main
 1. `python scripts/smoke_login_headed.py` 로 SSO 첫 통과 → state.json 생성
 2. `python scripts/smoke_collect.py --course-index 0 --dry-run` 으로 강좌 목록 확인
 3. `python scripts/smoke_collect.py --course-index 0` 로 한 강좌 실수집
-4. `python scripts/smoke_docs.py` 로 DOCX 생성 확인
-5. 문제 발생 시 `python scripts/reset.py --all` 로 초기화 후 재시도
+4. `python scripts/smoke_timetable.py --dry-run` 으로 master JSON 매칭률 확인
+5. `python -m app.cli regen-docx` 로 DOCX 생성 확인 (`smoke_docs.py` 는 deprecated)
+6. 문제 발생 시 `python scripts/reset.py --all` 로 초기화 후 재시도
 
 ## 코드 스타일 핵심
 
@@ -63,7 +68,7 @@ SOMETHING = _BACKEND_ROOT / "data" / "something"
 
 이미 anchor된 곳: `app/auth/session.py` (`STATE_PATH`), `app/downloader/paths.py` (`TEMP_ROOT`, Desktop 경로), `app/db/database.py` (`DATABASE_URL`).
 
-**아직 CWD-relative여서 위험**: [scripts/reset.py:42](backend/scripts/reset.py#L42) (`Path("data/lms.db")`), [scripts/reset.py:52,69](backend/scripts/reset.py#L52). reset.py는 backend/ 외부에서 실행하면 일부 동작이 어긋남. 손볼 때 같이 고치면 좋음.
+_(과거에 CWD-relative 였던 [scripts/reset.py](scripts/reset.py) 는 `_BACKEND_ROOT` anchor 로 전환됨 — 모든 운영 경로가 절대 경로.)_
 
 ## 2. UOS는 SSO(NTLM/Kerberos)로 자동 인증된다
 
@@ -92,9 +97,15 @@ SSO 끄고 싶으면: `chromium.launch(args=["--auth-server-allowlist=", "--auth
 
 Moodle `pluginfile.php` URL은 itemid가 회전한다. 같은 PDF를 재업로드하면 URL은 바뀌고 내용은 같음 → URL 기반 dedupe는 깨진다. `Material.UniqueConstraint(course_id, sha256)` 유지 필수.
 
-## 6. modtype 분기는 folder/ubboard/assign 3종만
+## 6. modtype 분기는 folder/ubboard/ubfile/assign 4종
 
-UOS는 `modtype_resource`를 안 쓴다 (실제 강좌 샘플에 0개). 파일은 전부 `modtype_folder`(폴더), `modtype_ubboard`(공지/Q&A 첨부), `modtype_assign`(과제 첨부) 안에 있음. resource 분기 추가하지 말 것 — 검증 없이 추가하면 dead code.
+UOS는 `modtype_resource`를 안 쓴다 (실제 강좌 샘플에 0개). 파일은 다음 4개 안에 있음:
+- `modtype_folder` — 자료실(다파일)
+- `modtype_ubboard` — 공지/Q&A 게시판 + 첨부
+- `modtype_ubfile` — UCLASS 전용 단일 파일 활동 (주차별 강의자료/슬라이드를 1파일=1활동 으로 올릴 때)
+- `modtype_assign` — 과제 + 첨부
+
+`resource` 분기 추가하지 말 것 — 검증 없이 추가하면 dead code. 새 modtype 발견 시 샘플 HTML 확보 후 [collector/CLAUDE.md](app/collector/CLAUDE.md) 절차에 따라 추가.
 
 ## 7. cross-volume 파일 이동은 `shutil.move` 필수
 
@@ -108,12 +119,16 @@ Desktop 폴더 구조가 `<강좌명>/<N>주차/원본/`인데 강좌명은 `cou
 
 | 위치 | 용도 | 누가 봄 |
 |---|---|---|
-| `backend/data/lms.db` | 메타데이터 + dedupe + Summary markdown | 시스템만 |
-| `backend/data/temp/` | 다운로드 중 staging | 시스템만 (자동 정리) |
-| `~/Desktop/UOS_LMS_AI/<강좌>/<N>주차/원본/` | 다운로드 원본 | 사용자 |
-| `~/Desktop/UOS_LMS_AI/<강좌>/<N>주차/정리/` | DOCX 정리노트 | 사용자 |
+| `backend/data/master/courses_*.json` | 학기 전체 강좌 universe (앱 번들, committed) | 시스템만 — 앱 업데이트로만 갱신 |
+| `backend/data/user/lms.db` | 메타데이터 + dedupe + Summary markdown | 시스템만 |
+| `backend/data/user/temp/` | 다운로드 중 staging | 시스템만 (자동 정리) |
+| `backend/data/user/parsed/<id>.json` | PDF 파싱 블록 JSON | 시스템만 |
+| `backend/data/user/.master_apply.json` | 마스터→DB 적용 스킵 마커 | 시스템만 |
+| `backend/data/user/raw/` | legacy 다운로드 (pre-Desktop 잔재, 신규 코드 미사용) | 시스템만 — `reset.py --files` 로만 정리 |
+| `~/Desktop/UOS_LMS_AI/<강좌>/<source_label>/원본/` | 다운로드 원본 (source_label = 활동 이름) | 사용자 |
+| `~/Desktop/UOS_LMS_AI/<강좌>/<source_label>/정리/` | 자료/공지/과제 1개당 DOCX 1개 | 사용자 |
 
-`backend/data/raw/`는 legacy 경로 — reset.py가 안전하게 청소하지만 새 코드에서 참조 X.
+원칙: **`master/` 는 read-only (앱이 직접 쓰지 않음), `user/` 는 모두 read-write.** `reset.py` 는 어떤 옵션으로도 `master/` 를 건드리지 않는다.
 
 ## 10. selector는 4개 페이지에서만 검증됨
 

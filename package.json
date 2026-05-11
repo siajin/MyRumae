@@ -1,0 +1,11 @@
+{
+  "name": "myrumae",
+  "private": true,
+  "version": "0.1.0",
+  "description": "MyRumae — root orchestration (Tauri CLI proxy)",
+  "scripts": {
+    "tauri": "npm --prefix frontend exec -- tauri",
+    "dev": "npm run tauri -- dev",
+    "build": "npm run tauri -- build"
+  }
+}

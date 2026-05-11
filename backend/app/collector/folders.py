@@ -8,6 +8,7 @@ from typing import Optional
 from playwright.async_api import Page
 
 from ..db import repository as repo
+from ..downloader import paths as dl_paths
 from ..downloader.download import DownloadedFile, download_via_click
 from ..selectors import FOLDER
 
@@ -26,6 +27,7 @@ async def collect_folder_files(
     course_name: str,
     cmid: int,
     week: Optional[int],
+    source_label: Optional[str] = None,
 ) -> int:
     """Return count of newly downloaded materials."""
     url = FOLDER.URL_TMPL.format(cmid=cmid)
@@ -40,6 +42,13 @@ async def collect_folder_files(
     for link in links:
         href = await link.get_attribute("href") or ""
 
+        # Pre-download dedupe by filename so we skip the network roundtrip
+        # for files already on disk under the same name.
+        fname = dl_paths.filename_from_url(href)
+        if fname and repo.material_exists_by_filename(db, course_id, fname):
+            log.info("folder cmid=%s: skip (filename dedupe) %s", cmid, fname)
+            continue
+
         def _exists(sha: str) -> bool:
             return repo.material_exists_by_sha(db, course_id, sha)
 
@@ -47,7 +56,7 @@ async def collect_folder_files(
             page,
             link,
             course_name=course_name,
-            week=week,
+            source_label=source_label,
             sha_exists=_exists,
         )
         if result is None:
@@ -60,6 +69,7 @@ async def collect_folder_files(
             source_type="folder",
             cmid=cmid,
             week=week,
+            source_label=source_label,
             title=title,
             file_path=str(result.path),
             file_type=_file_type_from_name(title),

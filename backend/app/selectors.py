@@ -25,8 +25,11 @@ class COURSE:
     URL_TMPL = f"{BASE_URL}/course/view.php?id={{cid}}"
     URL_FLAT = f"{BASE_URL}/course/view.php?id={{cid}}&mode=sections"
 
-    SECTION = "li.section[data-sectionid], li.section[id^='section-']"
-    SECTION_ID_ATTR = "data-sectionid"
+    # Outer section li carries the week via id="section-N" and
+    # data-sectionname="N주차". Do NOT use data-sectionid — it is a database
+    # id, not a week number (an inner <div id="section-item-{dbid}"> also
+    # shares the "section-" id prefix and would mislead closest()).
+    SECTION = "li.section[id^='section-']"
 
     ACTIVITY = "li.activity.activity-wrapper[data-id]"
     ACTIVITY_ID_ATTR = "data-id"
@@ -53,6 +56,17 @@ class FOLDER:
     DOWNLOAD_FOLDER_BTN = "button[name='downloadfolder'], a[href*='action=download']"
 
 
+class UBFILE:
+    """UCLASS-specific single-file activity (modtype_ubfile).
+
+    Used for weekly lecture materials uploaded as one file per activity.
+    The view page either auto-downloads (Content-Disposition: attachment) or
+    renders a single pluginfile link the user has to click.
+    """
+    URL_TMPL = f"{BASE_URL}/mod/ubfile/view.php?id={{cmid}}"
+    FILE_LINK = "a[href*='/pluginfile.php']"
+
+
 class ASSIGN:
     URL_TMPL = f"{BASE_URL}/mod/assign/view.php?id={{cmid}}"
 
@@ -70,4 +84,4 @@ def is_modtype(class_str: str, modtype: str) -> bool:
     return f"modtype_{modtype}" in class_str
 
 
-KNOWN_MODTYPES = ("folder", "ubboard", "assign", "resource")
+KNOWN_MODTYPES = ("folder", "ubboard", "ubfile", "assign", "resource")

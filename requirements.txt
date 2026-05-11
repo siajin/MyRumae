@@ -5,8 +5,15 @@ sqlalchemy
 apscheduler
 
 pymupdf
+pdfplumber
+pypdf
+Pillow
 python-pptx
 python-docx
+
+# OCR is disabled in the demo build. If you want PaddleOCR back:
+#   pip install paddleocr paddlepaddle
+# and re-enable via MYRUMAE_ENABLE_OCR=1 (see app/parser/ocr.py).
 
 playwright
 

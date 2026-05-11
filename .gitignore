@@ -2,12 +2,14 @@
 __pycache__/
 *.pyc
 
-data/raw/
-data/cache/
-data/temp/
-backend/data/raw/
-backend/data/cache/
-backend/data/temp/
+# secrets — .env.example 은 커밋 OK, 실제 .env 는 금지
+.env
+!.env.example
+backend/.env
+
+# Per-user runtime state (DB, parsed cache, temp staging, downloads).
+# master/ is committed — ships with the app via store update.
+backend/data/user/
 backend/playwright-state/
 
 playwright-state/
@@ -17,3 +19,13 @@ playwright-state/
 
 node_modules/
 dist/
+
+# Tauri (Rust build artifacts and generated capability schema)
+src-tauri/target/
+src-tauri/gen/
+src-tauri/WixTools/
+
+# Frontend build output
+frontend/dist/
+
+uclass_references/

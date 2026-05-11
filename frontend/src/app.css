@@ -1,0 +1,56 @@
+:root {
+  font-family: 'Malgun Gothic', '맑은 고딕', system-ui, -apple-system, sans-serif;
+  color-scheme: light dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 24px;
+}
+
+main {
+  max-width: 640px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+h1 {
+  font-size: 1.4rem;
+  margin: 0;
+}
+
+button {
+  padding: 8px 16px;
+  border: 1px solid currentColor;
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+  font-size: 0.95rem;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+pre {
+  background: rgba(127, 127, 127, 0.1);
+  padding: 12px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  max-height: 240px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.status-idle    { color: #888; }
+.status-syncing { color: #c08a00; }
+.status-done    { color: #2a8f2a; }
+.status-error   { color: #c0392b; }
